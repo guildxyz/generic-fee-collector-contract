@@ -1,7 +1,7 @@
-import { expect } from "chai";
-import { ethers } from "hardhat";
-import { BigNumber, Contract } from "ethers";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { expect } from "chai";
+import { BigNumber, Contract } from "ethers";
+import { ethers } from "hardhat";
 
 function calculateFeeDistribution(collected: BigNumber, guildShareBps: BigNumber) {
   const guildAmount = collected.mul(guildShareBps).div(10000);
@@ -26,7 +26,7 @@ let token: Contract;
 let feeCollector: Contract;
 
 describe("FeeCollector", function () {
-  this.beforeAll("deploy contracts", async () => {
+  this.beforeAll("get addresses", async () => {
     [wallet0, owner, guildFeeCollector, randomWallet] = await ethers.getSigners();
   });
 
@@ -52,6 +52,23 @@ describe("FeeCollector", function () {
       expect(vault.owner).to.eq(owner.address);
       expect(vault.token).to.eq(token.address);
       expect(vault.fee).to.eq(fee);
+    });
+
+    it("should create more vaults when multicalled", async () => {
+      await expect(feeCollector.getVault(0))
+        .to.be.revertedWithCustomError(feeCollector, "VaultDoesNotExist")
+        .withArgs(0);
+      await expect(feeCollector.getVault(1))
+        .to.be.revertedWithCustomError(feeCollector, "VaultDoesNotExist")
+        .withArgs(1);
+
+      await feeCollector.multicall([
+        feeCollector.interface.encodeFunctionData("registerVault", [owner.address, token.address, fee]),
+        feeCollector.interface.encodeFunctionData("registerVault", [owner.address, ethers.constants.AddressZero, fee])
+      ]);
+
+      expect((await feeCollector.getVault(0)).token).to.eq(token.address);
+      expect((await feeCollector.getVault(1)).token).to.eq(ethers.constants.AddressZero);
     });
 
     it("should emit a VaultRegistered event", async () => {
@@ -204,7 +221,7 @@ describe("FeeCollector", function () {
     });
   });
 
-  context("setting fee collectors and their share", async () => {
+  context("setting the fee collector and it's share", async () => {
     context("Guild's fee collector", async () => {
       it("should revert if it's attempted to be changed by anyone else", async () => {
         await expect(feeCollector.setGuildFeeCollector(randomWallet.address))
