@@ -25,11 +25,13 @@ contract FeeCollector is IFeeCollector, Multicall {
     function registerVault(
         address owner,
         address token,
-        uint128 fee
+        bool multiplePayments,
+        uint120 fee
     ) external {
         Vault storage vault = vaults.push();
         vault.owner = owner;
         vault.token = token;
+        vault.multiplePayments = multiplePayments;
         vault.fee = fee;
 
         emit VaultRegistered(vaults.length - 1, owner, token, fee);
@@ -39,6 +41,9 @@ contract FeeCollector is IFeeCollector, Multicall {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
 
         Vault storage vault = vaults[vaultId];
+
+        if (!vault.multiplePayments && vault.paid[msg.sender]) revert AlreadyPaid(vaultId, msg.sender);
+
         uint256 requiredAmount = vault.fee;
         vault.collected += uint128(requiredAmount);
         vault.paid[msg.sender] = true;
@@ -93,13 +98,14 @@ contract FeeCollector is IFeeCollector, Multicall {
         returns (
             address owner,
             address token,
-            uint128 fee,
+            bool multiplePayments,
+            uint120 fee,
             uint128 collected
         )
     {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
         Vault storage vault = vaults[vaultId];
-        return (vault.owner, vault.token, vault.fee, vault.collected);
+        return (vault.owner, vault.token, vault.multiplePayments, vault.fee, vault.collected);
     }
 
     function hasPaid(uint256 vaultId, address account) external view returns (bool paid) {

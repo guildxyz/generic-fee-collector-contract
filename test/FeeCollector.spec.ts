@@ -47,10 +47,11 @@ describe("FeeCollector", function () {
 
   context("registering a vault", async () => {
     it("should store vault details", async () => {
-      await feeCollector.registerVault(owner.address, token.address, fee);
+      await feeCollector.registerVault(owner.address, token.address, true, fee);
       const vault = await feeCollector.getVault(0);
       expect(vault.owner).to.eq(owner.address);
       expect(vault.token).to.eq(token.address);
+      expect(vault.multiplePayments).to.eq(true);
       expect(vault.fee).to.eq(fee);
     });
 
@@ -63,8 +64,13 @@ describe("FeeCollector", function () {
         .withArgs(1);
 
       await feeCollector.multicall([
-        feeCollector.interface.encodeFunctionData("registerVault", [owner.address, token.address, fee]),
-        feeCollector.interface.encodeFunctionData("registerVault", [owner.address, ethers.constants.AddressZero, fee])
+        feeCollector.interface.encodeFunctionData("registerVault", [owner.address, token.address, false, fee]),
+        feeCollector.interface.encodeFunctionData("registerVault", [
+          owner.address,
+          ethers.constants.AddressZero,
+          false,
+          fee
+        ])
       ]);
 
       expect((await feeCollector.getVault(0)).token).to.eq(token.address);
@@ -72,15 +78,15 @@ describe("FeeCollector", function () {
     });
 
     it("should emit a VaultRegistered event", async () => {
-      const tx = feeCollector.registerVault(owner.address, token.address, fee);
+      const tx = feeCollector.registerVault(owner.address, token.address, false, fee);
       await expect(tx).to.emit(feeCollector, "VaultRegistered").withArgs("0", owner.address, token.address, fee);
     });
   });
 
   context("paying fees", async () => {
     beforeEach("register an ERC20 and an Ether vault", async () => {
-      await feeCollector.registerVault(owner.address, token.address, fee);
-      await feeCollector.registerVault(owner.address, ethers.constants.AddressZero, fee);
+      await feeCollector.registerVault(owner.address, token.address, false, fee);
+      await feeCollector.registerVault(owner.address, ethers.constants.AddressZero, true, fee);
       await token.approve(feeCollector.address, ethers.constants.MaxUint256);
     });
 
@@ -91,6 +97,19 @@ describe("FeeCollector", function () {
       await expect(feeCollector.payFee("69", { value: fee }))
         .to.be.revertedWithCustomError(feeCollector, "VaultDoesNotExist")
         .withArgs(69);
+    });
+
+    it("should revert if multiple payments aren't enabled, but the sender attempts to pay repeatedly", async () => {
+      await feeCollector.payFee("0");
+      await expect(feeCollector.payFee("0"))
+        .to.be.revertedWithCustomError(feeCollector, "AlreadyPaid")
+        .withArgs(0, wallet0.address);
+    });
+
+    it("should allow multiple payments when they are enabled", async () => {
+      await feeCollector.payFee("1", { value: fee });
+      const tx = await feeCollector.payFee("1", { value: fee });
+      expect((await tx.wait()).status).to.eq(1);
     });
 
     it("should save the paid amount and set paid state for the account", async () => {
@@ -144,7 +163,7 @@ describe("FeeCollector", function () {
     it("should revert if token transfer returns false", async () => {
       const BadERC20 = await ethers.getContractFactory("MockBadERC20");
       const badToken = await BadERC20.deploy();
-      await feeCollector.registerVault(owner.address, badToken.address, fee);
+      await feeCollector.registerVault(owner.address, badToken.address, false, fee);
       await badToken.approve(feeCollector.address, ethers.constants.MaxUint256);
       await expect(feeCollector.payFee("2"))
         .to.be.revertedWithCustomError(feeCollector, "TransferFailed")
@@ -159,8 +178,8 @@ describe("FeeCollector", function () {
 
   context("withdrawing collected fees", async () => {
     beforeEach("register an ERC20 and an Ether vault", async () => {
-      await feeCollector.registerVault(owner.address, token.address, fee);
-      await feeCollector.registerVault(owner.address, ethers.constants.AddressZero, fee);
+      await feeCollector.registerVault(owner.address, token.address, false, fee);
+      await feeCollector.registerVault(owner.address, ethers.constants.AddressZero, false, fee);
       await token.approve(feeCollector.address, ethers.constants.MaxUint256);
       await feeCollector.payFee("0");
       await feeCollector.payFee("1", { value: fee });

@@ -50,7 +50,8 @@ constructor(
 function registerVault(
     address owner,
     address token,
-    uint128 fee
+    bool multiplePayments,
+    uint120 fee
 ) external
 ```
 
@@ -62,7 +63,8 @@ Registers a vault and it's fee.
 | :--- | :--- | :---------- |
 | `owner` | address | The address that receives the fees from the drop. |
 | `token` | address | The zero address for Ether, otherwise an ERC20 token. |
-| `fee` | uint128 | The amount of fee to pay in wei. |
+| `multiplePayments` | bool | Whether the fee can be paid multiple times. |
+| `fee` | uint120 | The amount of fee to pay in wei. |
 
 ### payFee
 
@@ -137,7 +139,7 @@ Callable only by the Guild fee collector.
 ```solidity
 function getVault(
     uint256 vaultId
-) external returns (address owner, address token, uint128 fee, uint128 collected)
+) external returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected)
 ```
 
 Returns a vault's details.
@@ -154,7 +156,8 @@ Returns a vault's details.
 | :--- | :--- | :---------- |
 | `owner` | address | The owner of the vault who recieves the funds. |
 | `token` | address | The address of the token to receive funds in (the zero address in case of Ether). |
-| `fee` | uint128 | The amount of required funds in wei. |
+| `multiplePayments` | bool | Whether the fee can be paid multiple times. |
+| `fee` | uint120 | The amount of required funds in wei. |
 | `collected` | uint128 | The amount of already collected funds. |
 ### hasPaid
 

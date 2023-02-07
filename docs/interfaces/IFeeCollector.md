@@ -10,7 +10,8 @@ A smart contract for registering vaults for payments.
 function registerVault(
     address owner,
     address token,
-    uint128 fee
+    bool multiplePayments,
+    uint120 fee
 ) external
 ```
 
@@ -22,7 +23,8 @@ Registers a vault and it's fee.
 | :--- | :--- | :---------- |
 | `owner` | address | The address that receives the fees from the drop. |
 | `token` | address | The zero address for Ether, otherwise an ERC20 token. |
-| `fee` | uint128 | The amount of fee to pay in wei. |
+| `multiplePayments` | bool | Whether the fee can be paid multiple times. |
+| `fee` | uint120 | The amount of fee to pay in wei. |
 
 ### payFee
 
@@ -97,7 +99,7 @@ Distributes the funds from a vault to the fee collectors and the owner.
 ```solidity
 function getVault(
     uint256 vaultId
-) external returns (address owner, address token, uint128 fee, uint128 collected)
+) external returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected)
 ```
 
 Returns a vault's details.
@@ -114,7 +116,8 @@ Returns a vault's details.
 | :--- | :--- | :---------- |
 | `owner` | address | The owner of the vault who recieves the funds. |
 | `token` | address | The address of the token to receive funds in (the zero address in case of Ether). |
-| `fee` | uint128 | The amount of required funds in wei. |
+| `multiplePayments` | bool | Whether the fee can be paid multiple times. |
+| `fee` | uint120 | The amount of required funds in wei. |
 | `collected` | uint128 | The amount of already collected funds. |
 ### hasPaid
 
@@ -244,6 +247,21 @@ Event emitted when funds are withdrawn by a vault owner.
 
 ## Custom errors
 
+### AlreadyPaid
+
+```solidity
+error AlreadyPaid(uint256 vaultId, address sender)
+```
+
+Error thrown when multiple payments aren't enabled, but the sender attempts to pay repeatedly.
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| vaultId | uint256 | The id of the vault. |
+| sender | address | The sender of the transaction. |
+
 ### IncorrectFee
 
 ```solidity
@@ -314,7 +332,8 @@ Error thrown when a vault does not exist.
 struct Vault {
   address owner;
   address token;
-  uint128 fee;
+  bool multiplePayments;
+  uint120 fee;
   uint128 collected;
   mapping(address => bool) paid;
 }

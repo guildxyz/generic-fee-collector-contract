@@ -6,7 +6,8 @@ interface IFeeCollector {
     struct Vault {
         address owner;
         address token;
-        uint128 fee;
+        bool multiplePayments;
+        uint120 fee;
         uint128 collected;
         mapping(address => bool) paid;
     }
@@ -14,11 +15,13 @@ interface IFeeCollector {
     /// @notice Registers a vault and it's fee.
     /// @param owner The address that receives the fees from the drop.
     /// @param token The zero address for Ether, otherwise an ERC20 token.
+    /// @param multiplePayments Whether the fee can be paid multiple times.
     /// @param fee The amount of fee to pay in wei.
     function registerVault(
         address owner,
         address token,
-        uint128 fee
+        bool multiplePayments,
+        uint120 fee
     ) external;
 
     /// @notice Registers the paid fee, both in Ether or ERC20.
@@ -43,6 +46,7 @@ interface IFeeCollector {
     /// @param vaultId The id of the queried vault.
     /// @return owner The owner of the vault who recieves the funds.
     /// @return token The address of the token to receive funds in (the zero address in case of Ether).
+    /// @return multiplePayments Whether the fee can be paid multiple times.
     /// @return fee The amount of required funds in wei.
     /// @return collected The amount of already collected funds.
     function getVault(uint256 vaultId)
@@ -51,7 +55,8 @@ interface IFeeCollector {
         returns (
             address owner,
             address token,
-            uint128 fee,
+            bool multiplePayments,
+            uint120 fee,
             uint128 collected
         );
 
@@ -91,6 +96,11 @@ interface IFeeCollector {
     /// @param guildAmount The amount received by the Guild fee collector in wei.
     /// @param ownerAmount The amount received by the vault's owner in wei.
     event Withdrawn(uint256 indexed vaultId, uint256 guildAmount, uint256 ownerAmount);
+
+    /// @notice Error thrown when multiple payments aren't enabled, but the sender attempts to pay repeatedly.
+    /// @param vaultId The id of the vault.
+    /// @param sender The sender of the transaction.
+    error AlreadyPaid(uint256 vaultId, address sender);
 
     /// @notice Error thrown when an incorrect amount of fee is attempted to be paid.
     /// @dev requiredAmount might be 0 in cases when an ERC20 payment was expected but Ether was received, too.
