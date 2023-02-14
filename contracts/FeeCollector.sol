@@ -92,6 +92,19 @@ contract FeeCollector is IFeeCollector, Multicall {
         emit GuildShareBpsChanged(newShare);
     }
 
+    function setVaultDetails(uint256 vaultId, address newOwner, bool newMultiplePayments, uint120 newFee) external {
+        if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
+        Vault storage vault = vaults[vaultId];
+
+        if (msg.sender != vault.owner) revert AccessDenied(msg.sender, vault.owner);
+
+        vault.owner = newOwner;
+        vault.multiplePayments = newMultiplePayments;
+        vault.fee = newFee;
+
+        emit VaultDetailsChanged(vaultId);
+    }
+
     function getVault(uint256 vaultId)
         external
         view

@@ -38,6 +38,14 @@ interface IFeeCollector {
     /// @param newShare The percentual value expressed in basis points.
     function setGuildShareBps(uint96 newShare) external;
 
+    /// @notice Changes the details of a vault.
+    /// @dev Callable only by the owner of the vault to be changed.
+    /// @param vaultId The id of the vault whose details should be changed.
+    /// @param newOwner The address that will receive the fees from now on.
+    /// @param newMultiplePayments Whether the fee can be paid multiple times from now on.
+    /// @param newFee The amount of fee to pay in base units from now on.
+    function setVaultDetails(uint256 vaultId, address newOwner, bool newMultiplePayments, uint120 newFee) external;
+
     /// @notice Distributes the funds from a vault to the fee collectors and the owner.
     /// @param vaultId The id of the vault whose funds should be distributed.
     function withdraw(uint256 vaultId) external;
@@ -84,6 +92,10 @@ interface IFeeCollector {
     /// @notice Event emitted when the share of the Guild fee collector changes.
     /// @param newShare The new value of guildShareBps.
     event GuildShareBpsChanged(uint96 newShare);
+
+    /// @notice Event emitted when a vault's details are changed.
+    /// @param vaultId The id of the altered vault.
+    event VaultDetailsChanged(uint256 vaultId);
 
     /// @notice Event emitted when a new vault is registered.
     /// @param owner The address that receives the fees from the drop.

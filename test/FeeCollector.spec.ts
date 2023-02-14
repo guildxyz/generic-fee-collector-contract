@@ -240,6 +240,42 @@ describe("FeeCollector", function () {
     });
   });
 
+  context("editing vaults", async () => {
+    beforeEach("register an ERC20 and an Ether vault", async () => {
+      await feeCollector.registerVault(owner.address, token.address, false, fee);
+      await feeCollector.registerVault(owner.address, ethers.constants.AddressZero, false, fee);
+    });
+
+    it("should revert if the the vault does not exist", async () => {
+      await expect(feeCollector.setVaultDetails("69", wallet0.address, false, 0))
+        .to.be.revertedWithCustomError(feeCollector, "VaultDoesNotExist")
+        .withArgs(69);
+    });
+
+    it("should revert if the caller is not the vaults owner", async () => {
+      const vault = await feeCollector.getVault(0);
+      await expect(feeCollector.setVaultDetails(0, randomWallet.address, false, 0))
+        .to.be.revertedWithCustomError(feeCollector, "AccessDenied")
+        .withArgs(wallet0.address, vault.owner);
+    });
+
+    it("should change values", async () => {
+      const vaultBefore = await feeCollector.getVault(1);
+      await feeCollector.connect(owner).setVaultDetails(1, randomWallet.address, true, 420);
+      const vaultAfter = await feeCollector.getVault(1);
+      expect(vaultAfter.owner).to.eq(randomWallet.address);
+      expect(vaultAfter.multiplePayments).to.eq(true);
+      expect(vaultAfter.fee).to.eq(420);
+      expect(vaultAfter.token).to.eq(vaultBefore.token);
+      expect(vaultAfter.collected).to.eq(vaultBefore.collected);
+    });
+
+    it("should emit a VaultDetailsChanged event", async () => {
+      const tx = feeCollector.connect(owner).setVaultDetails(0, randomWallet.address, true, 420);
+      await expect(tx).to.emit(feeCollector, "VaultDetailsChanged").withArgs(0);
+    });
+  });
+
   context("setting the fee collector and it's share", async () => {
     context("Guild's fee collector", async () => {
       it("should revert if it's attempted to be changed by anyone else", async () => {
