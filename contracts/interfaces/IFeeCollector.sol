@@ -13,16 +13,11 @@ interface IFeeCollector {
     }
 
     /// @notice Registers a vault and it's fee.
-    /// @param owner The address that receives the fees from the drop.
+    /// @param owner The address that receives the fees from the payment.
     /// @param token The zero address for Ether, otherwise an ERC20 token.
     /// @param multiplePayments Whether the fee can be paid multiple times.
-    /// @param fee The amount of fee to pay in wei.
-    function registerVault(
-        address owner,
-        address token,
-        bool multiplePayments,
-        uint120 fee
-    ) external;
+    /// @param fee The amount of fee to pay in base units.
+    function registerVault(address owner, address token, bool multiplePayments, uint120 fee) external;
 
     /// @notice Registers the paid fee, both in Ether or ERC20.
     /// @param vaultId The id of the vault to pay to.
@@ -55,18 +50,11 @@ interface IFeeCollector {
     /// @return owner The owner of the vault who recieves the funds.
     /// @return token The address of the token to receive funds in (the zero address in case of Ether).
     /// @return multiplePayments Whether the fee can be paid multiple times.
-    /// @return fee The amount of required funds in wei.
+    /// @return fee The amount of required funds in base units.
     /// @return collected The amount of already collected funds.
-    function getVault(uint256 vaultId)
-        external
-        view
-        returns (
-            address owner,
-            address token,
-            bool multiplePayments,
-            uint120 fee,
-            uint128 collected
-        );
+    function getVault(
+        uint256 vaultId
+    ) external view returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected);
 
     /// @notice Returns if an account has paid the fee to a vault.
     /// @param vaultId The id of the queried vault.
@@ -82,7 +70,7 @@ interface IFeeCollector {
     /// @notice Event emitted when a call to {payFee} succeeds.
     /// @param vaultId The id of the vault that received the payment.
     /// @param account The address of the account that paid.
-    /// @param amount The amount of fee received in wei.
+    /// @param amount The amount of fee received in base units.
     event FeeReceived(uint256 indexed vaultId, address indexed account, uint256 amount);
 
     /// @notice Event emitted when the Guild fee collector address is changed.
@@ -98,15 +86,15 @@ interface IFeeCollector {
     event VaultDetailsChanged(uint256 vaultId);
 
     /// @notice Event emitted when a new vault is registered.
-    /// @param owner The address that receives the fees from the drop.
+    /// @param owner The address that receives the fees from the payment.
     /// @param token The zero address for Ether, otherwise an ERC20 token.
-    /// @param fee The amount of fee to pay in wei.
+    /// @param fee The amount of fee to pay in base units.
     event VaultRegistered(uint256 vaultId, address indexed owner, address indexed token, uint256 fee);
 
     /// @notice Event emitted when funds are withdrawn by a vault owner.
     /// @param vaultId The id of the vault.
-    /// @param guildAmount The amount received by the Guild fee collector in wei.
-    /// @param ownerAmount The amount received by the vault's owner in wei.
+    /// @param guildAmount The amount received by the Guild fee collector in base units.
+    /// @param ownerAmount The amount received by the vault's owner in base units.
     event Withdrawn(uint256 indexed vaultId, uint256 guildAmount, uint256 ownerAmount);
 
     /// @notice Error thrown when multiple payments aren't enabled, but the sender attempts to pay repeatedly.

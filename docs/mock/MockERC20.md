@@ -26,7 +26,7 @@ Mint an amount of tokens to an account.
 | Name | Type | Description |
 | :--- | :--- | :---------- |
 | `account` | address | The address receiving the tokens. |
-| `amount` | uint256 | The amount of tokens the account receives in wei. |
+| `amount` | uint256 | The amount of tokens the account receives in base units. |
 
 ### burn
 
@@ -44,5 +44,5 @@ Burn an amount of tokens from an account.
 | Name | Type | Description |
 | :--- | :--- | :---------- |
 | `account` | address | The address from which the tokens are burnt from. |
-| `amount` | uint256 | The amount of tokens burnt in wei. |
+| `amount` | uint256 | The amount of tokens burnt in base units. |
 

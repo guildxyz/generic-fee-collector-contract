@@ -14,11 +14,7 @@ contract MockBadERC20 is ERC20 {
         return false;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         super.transferFrom(from, to, amount);
         return false;
     }

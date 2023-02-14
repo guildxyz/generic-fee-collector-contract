@@ -61,10 +61,10 @@ Registers a vault and it's fee.
 
 | Name | Type | Description |
 | :--- | :--- | :---------- |
-| `owner` | address | The address that receives the fees from the drop. |
+| `owner` | address | The address that receives the fees from the payment. |
 | `token` | address | The zero address for Ether, otherwise an ERC20 token. |
 | `multiplePayments` | bool | Whether the fee can be paid multiple times. |
-| `fee` | uint120 | The amount of fee to pay in wei. |
+| `fee` | uint120 | The amount of fee to pay in base units. |
 
 ### payFee
 
@@ -134,6 +134,30 @@ Callable only by the Guild fee collector.
 | :--- | :--- | :---------- |
 | `newShare` | uint96 | The percentual value expressed in basis points. |
 
+### setVaultDetails
+
+```solidity
+function setVaultDetails(
+    uint256 vaultId,
+    address newOwner,
+    bool newMultiplePayments,
+    uint120 newFee
+) external
+```
+
+Changes the details of a vault.
+
+Callable only by the owner of the vault to be changed.
+
+#### Parameters
+
+| Name | Type | Description |
+| :--- | :--- | :---------- |
+| `vaultId` | uint256 | The id of the vault whose details should be changed. |
+| `newOwner` | address | The address that will receive the fees from now on. |
+| `newMultiplePayments` | bool | Whether the fee can be paid multiple times from now on. |
+| `newFee` | uint120 | The amount of fee to pay in base units from now on. |
+
 ### getVault
 
 ```solidity
@@ -157,7 +181,7 @@ Returns a vault's details.
 | `owner` | address | The owner of the vault who recieves the funds. |
 | `token` | address | The address of the token to receive funds in (the zero address in case of Ether). |
 | `multiplePayments` | bool | Whether the fee can be paid multiple times. |
-| `fee` | uint120 | The amount of required funds in wei. |
+| `fee` | uint120 | The amount of required funds in base units. |
 | `collected` | uint128 | The amount of already collected funds. |
 ### hasPaid
 

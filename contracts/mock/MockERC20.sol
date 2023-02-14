@@ -11,14 +11,14 @@ contract MockERC20 is ERC20 {
 
     /// @notice Mint an amount of tokens to an account.
     /// @param account The address receiving the tokens.
-    /// @param amount The amount of tokens the account receives in wei.
+    /// @param amount The amount of tokens the account receives in base units.
     function mint(address account, uint256 amount) external {
         _mint(account, amount);
     }
 
     /// @notice Burn an amount of tokens from an account.
     /// @param account The address from which the tokens are burnt from.
-    /// @param amount The amount of tokens burnt in wei.
+    /// @param amount The amount of tokens burnt in base units.
     function burn(address account, uint256 amount) external {
         _burn(account, amount);
     }

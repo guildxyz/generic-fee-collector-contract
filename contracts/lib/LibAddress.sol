@@ -9,7 +9,7 @@ library LibAddress {
 
     /// @notice Send ether to an address, forwarding all available gas and reverting on errors.
     /// @param recipient The recipient of the ether.
-    /// @param amount The amount of ether to send in wei.
+    /// @param amount The amount of ether to send in base units.
     function sendEther(address payable recipient, uint256 amount) internal {
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = recipient.call{ value: amount }("");

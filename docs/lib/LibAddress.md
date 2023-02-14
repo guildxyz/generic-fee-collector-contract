@@ -20,7 +20,7 @@ Send ether to an address, forwarding all available gas and reverting on errors.
 | Name | Type | Description |
 | :--- | :--- | :---------- |
 | `recipient` | address payable | The recipient of the ether. |
-| `amount` | uint256 | The amount of ether to send in wei. |
+| `amount` | uint256 | The amount of ether to send in base units. |
 
 ## Custom errors
 

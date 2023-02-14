@@ -22,12 +22,7 @@ contract FeeCollector is IFeeCollector, Multicall {
         guildShareBps = guildShareBps_;
     }
 
-    function registerVault(
-        address owner,
-        address token,
-        bool multiplePayments,
-        uint120 fee
-    ) external {
+    function registerVault(address owner, address token, bool multiplePayments, uint120 fee) external {
         Vault storage vault = vaults.push();
         vault.owner = owner;
         vault.token = token;
@@ -105,17 +100,9 @@ contract FeeCollector is IFeeCollector, Multicall {
         emit VaultDetailsChanged(vaultId);
     }
 
-    function getVault(uint256 vaultId)
-        external
-        view
-        returns (
-            address owner,
-            address token,
-            bool multiplePayments,
-            uint120 fee,
-            uint128 collected
-        )
-    {
+    function getVault(
+        uint256 vaultId
+    ) external view returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected) {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
         Vault storage vault = vaults[vaultId];
         return (vault.owner, vault.token, vault.multiplePayments, vault.fee, vault.collected);
@@ -126,11 +113,7 @@ contract FeeCollector is IFeeCollector, Multicall {
         return vaults[vaultId].paid[account];
     }
 
-    function _withdrawEther(
-        uint256 guildAmount,
-        uint256 ownerAmount,
-        address eventOwner
-    ) internal {
+    function _withdrawEther(uint256 guildAmount, uint256 ownerAmount, address eventOwner) internal {
         guildFeeCollector.sendEther(guildAmount);
         payable(eventOwner).sendEther(ownerAmount);
     }
