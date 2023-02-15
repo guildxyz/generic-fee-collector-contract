@@ -6,6 +6,7 @@ const guildShareBps = 0; // The percentage of Guild's share expressed in basis p
 
 async function main() {
   const FeeCollector = await ethers.getContractFactory("FeeCollector");
+  const feeCollector = await FeeCollector.deploy(guildFeeCollector, guildShareBps);
 
   console.log(
     `Deploying contract to ${
@@ -13,7 +14,6 @@ async function main() {
     }...`
   );
 
-  const feeCollector = await FeeCollector.deploy(guildFeeCollector, guildShareBps);
   await feeCollector.deployed();
 
   console.log("FeeCollector deployed to:", feeCollector.address);
