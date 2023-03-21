@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity 0.8.19;
 
 import { IFeeCollector } from "./interfaces/IFeeCollector.sol";
 import { LibAddress } from "./lib/LibAddress.sol";
