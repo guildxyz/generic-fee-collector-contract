@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import { IFeeCollector } from "./interfaces/IFeeCollector.sol";
 import { LibAddress } from "./lib/LibAddress.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Multicall.sol";
+import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 
 /// @title A smart contract for registering vaults for payments.
 contract FeeCollector is IFeeCollector, Multicall {
