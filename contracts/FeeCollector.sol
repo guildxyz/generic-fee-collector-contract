@@ -2,27 +2,30 @@
 pragma solidity 0.8.19;
 
 import { IFeeCollector } from "./interfaces/IFeeCollector.sol";
-import { LibAddress } from "./lib/LibAddress.sol";
+import { LibTransfer } from "./lib/LibTransfer.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Multicall } from "@openzeppelin/contracts/utils/Multicall.sol";
 
 /// @title A smart contract for registering vaults for payments.
-contract FeeCollector is IFeeCollector, Multicall {
-    using LibAddress for address payable;
+contract FeeCollector is IFeeCollector, Multicall, Ownable {
+    using LibTransfer for address payable;
 
-    address payable public guildFeeCollector;
-    uint96 public guildShareBps;
+    address payable public guildTreasury;
+    uint96 public totalFeeBps;
+
+    mapping(string => FeeShare[]) internal feeSchemas;
 
     Vault[] internal vaults;
 
-    /// @param guildFeeCollector_ The address that will receive Guild's share from the funds.
-    /// @param guildShareBps_ The percentage of Guild's share expressed in basis points (e.g 500 for a 5% cut).
-    constructor(address payable guildFeeCollector_, uint96 guildShareBps_) {
-        guildFeeCollector = guildFeeCollector_;
-        guildShareBps = guildShareBps_;
+    /// @param guildTreasury_ The address that will receive Guild's share from the funds.
+    /// @param totalFeeBps_ The percentage of Guild's and any partner's share expressed in basis points.
+    constructor(address payable guildTreasury_, uint96 totalFeeBps_) {
+        guildTreasury = guildTreasury_;
+        totalFeeBps = totalFeeBps_;
     }
 
-    function registerVault(address owner, address token, bool multiplePayments, uint120 fee) external {
+    function registerVault(address payable owner, address token, bool multiplePayments, uint128 fee) external {
         Vault storage vault = vaults.push();
         vault.owner = owner;
         vault.token = token;
@@ -49,45 +52,80 @@ contract FeeCollector is IFeeCollector, Multicall {
             if (msg.value != requiredAmount) revert IncorrectFee(vaultId, msg.value, requiredAmount);
         } else {
             if (msg.value != 0) revert IncorrectFee(vaultId, msg.value, 0);
-            if (!IERC20(tokenAddress).transferFrom(msg.sender, address(this), requiredAmount))
-                revert TransferFailed(msg.sender, address(this));
+            payable(address(this)).sendTokenFrom(msg.sender, tokenAddress, requiredAmount);
         }
 
         emit FeeReceived(vaultId, msg.sender, requiredAmount);
     }
 
-    function withdraw(uint256 vaultId) external {
+    function withdraw(uint256 vaultId, string calldata feeSchemaKey) external {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
 
         Vault storage vault = vaults[vaultId];
         uint256 collected = vault.collected;
         vault.collected = 0;
 
-        // Calculate fees to receive. Guild's part is truncated - the remainder goes to the owner.
-        uint256 guildAmount = (collected * guildShareBps) / 10000;
-        uint256 ownerAmount = collected - guildAmount;
+        // Calculate fees to receive. Royalty is truncated - the remainder goes to the owner.
+        uint256 royaltyAmount = (collected * totalFeeBps) / 10000;
+        uint256 guildAmount = royaltyAmount;
 
         // If the tokenAddress is zero, the collected fees are in Ether, otherwise in ERC20.
         address tokenAddress = vault.token;
-        if (tokenAddress == address(0)) _withdrawEther(guildAmount, ownerAmount, vault.owner);
-        else _withdrawToken(guildAmount, ownerAmount, vault.owner, tokenAddress);
 
-        emit Withdrawn(vaultId, guildAmount, ownerAmount);
+        // Distribute fees for partners.
+        FeeShare[] memory feeSchema = feeSchemas[feeSchemaKey];
+        for (uint256 i; i < feeSchema.length; ) {
+            uint256 partnerAmount = (royaltyAmount * feeSchema[i].feeShareBps) / 10000;
+            guildAmount -= partnerAmount;
+
+            if (tokenAddress == address(0)) feeSchema[i].treasury.sendEther(partnerAmount);
+            else feeSchema[i].treasury.sendToken(tokenAddress, partnerAmount);
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        // Send the fees to Guild and the vault owner.
+        if (tokenAddress == address(0)) {
+            guildTreasury.sendEther(guildAmount);
+            vault.owner.sendEther(collected - royaltyAmount);
+        } else {
+            guildTreasury.sendToken(tokenAddress, guildAmount);
+            vault.owner.sendToken(tokenAddress, collected - royaltyAmount);
+        }
+
+        emit Withdrawn(vaultId);
     }
 
-    function setGuildFeeCollector(address payable newFeeCollector) external {
-        if (msg.sender != guildFeeCollector) revert AccessDenied(msg.sender, guildFeeCollector);
-        guildFeeCollector = newFeeCollector;
-        emit GuildFeeCollectorChanged(newFeeCollector);
+    function addFeeSchema(string calldata key, FeeShare[] calldata feeShare) external onlyOwner {
+        FeeShare[] storage fs = feeSchemas[key];
+        for (uint256 i; i < feeShare.length; ) {
+            fs.push(feeShare[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+        emit FeeSchemaAdded(key);
     }
 
-    function setGuildShareBps(uint96 newShare) external {
-        if (msg.sender != guildFeeCollector) revert AccessDenied(msg.sender, guildFeeCollector);
-        guildShareBps = newShare;
-        emit GuildShareBpsChanged(newShare);
+    function setGuildTreasury(address payable newTreasury) external onlyOwner {
+        guildTreasury = newTreasury;
+        emit GuildTreasuryChanged(newTreasury);
     }
 
-    function setVaultDetails(uint256 vaultId, address newOwner, bool newMultiplePayments, uint120 newFee) external {
+    function setTotalFeeBps(uint96 newShare) external onlyOwner {
+        totalFeeBps = newShare;
+        emit TotalFeeBpsChanged(newShare);
+    }
+
+    function setVaultDetails(
+        uint256 vaultId,
+        address payable newOwner,
+        bool newMultiplePayments,
+        uint128 newFee
+    ) external {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
         Vault storage vault = vaults[vaultId];
 
@@ -100,9 +138,17 @@ contract FeeCollector is IFeeCollector, Multicall {
         emit VaultDetailsChanged(vaultId);
     }
 
+    function getFeeSchema(string calldata key) external view returns (FeeShare[] memory schema) {
+        return feeSchemas[key];
+    }
+
     function getVault(
         uint256 vaultId
-    ) external view returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected) {
+    )
+        external
+        view
+        returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 collected)
+    {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
         Vault storage vault = vaults[vaultId];
         return (vault.owner, vault.token, vault.multiplePayments, vault.fee, vault.collected);
@@ -111,21 +157,5 @@ contract FeeCollector is IFeeCollector, Multicall {
     function hasPaid(uint256 vaultId, address account) external view returns (bool paid) {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
         return vaults[vaultId].paid[account];
-    }
-
-    function _withdrawEther(uint256 guildAmount, uint256 ownerAmount, address eventOwner) internal {
-        guildFeeCollector.sendEther(guildAmount);
-        payable(eventOwner).sendEther(ownerAmount);
-    }
-
-    function _withdrawToken(
-        uint256 guildAmount,
-        uint256 ownerAmount,
-        address eventOwner,
-        address tokenAddress
-    ) internal {
-        IERC20 token = IERC20(tokenAddress);
-        if (!token.transfer(guildFeeCollector, guildAmount)) revert TransferFailed(address(this), guildFeeCollector);
-        if (!token.transfer(eventOwner, ownerAmount)) revert TransferFailed(address(this), eventOwner);
     }
 }

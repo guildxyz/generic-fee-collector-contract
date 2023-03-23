@@ -4,21 +4,27 @@ A smart contract for registering vaults for payments.
 
 ## Variables
 
-### guildFeeCollector
+### guildTreasury
 
 ```solidity
-address payable guildFeeCollector
+address payable guildTreasury
 ```
 
 Returns the address that receives Guild's share from the funds.
 
-### guildShareBps
+### totalFeeBps
 
 ```solidity
-uint96 guildShareBps
+uint96 totalFeeBps
 ```
 
-Returns the percentage of Guild's share expressed in basis points.
+Returns the percentage of Guild's and any partner's share expressed in basis points.
+
+### feeSchemas
+
+```solidity
+mapping(string => struct IFeeCollector.FeeShare[]) feeSchemas
+```
 
 ### vaults
 
@@ -32,8 +38,8 @@ struct IFeeCollector.Vault[] vaults
 
 ```solidity
 constructor(
-    address payable guildFeeCollector_,
-    uint96 guildShareBps_
+    address payable guildTreasury_,
+    uint96 totalFeeBps_
 ) 
 ```
 
@@ -41,17 +47,17 @@ constructor(
 
 | Name | Type | Description |
 | :--- | :--- | :---------- |
-| `guildFeeCollector_` | address payable | The address that will receive Guild's share from the funds. |
-| `guildShareBps_` | uint96 | The percentage of Guild's share expressed in basis points (e.g 500 for a 5% cut). |
+| `guildTreasury_` | address payable | The address that will receive Guild's share from the funds. |
+| `totalFeeBps_` | uint96 | The percentage of Guild's and any partner's share expressed in basis points. |
 
 ### registerVault
 
 ```solidity
 function registerVault(
-    address owner,
+    address payable owner,
     address token,
     bool multiplePayments,
-    uint120 fee
+    uint128 fee
 ) external
 ```
 
@@ -61,10 +67,10 @@ Registers a vault and it's fee.
 
 | Name | Type | Description |
 | :--- | :--- | :---------- |
-| `owner` | address | The address that receives the fees from the payment. |
+| `owner` | address payable | The address that receives the fees from the payment. |
 | `token` | address | The zero address for Ether, otherwise an ERC20 token. |
 | `multiplePayments` | bool | Whether the fee can be paid multiple times. |
-| `fee` | uint120 | The amount of fee to pay in base units. |
+| `fee` | uint128 | The amount of fee to pay in base units. |
 
 ### payFee
 
@@ -86,7 +92,8 @@ Registers the paid fee, both in Ether or ERC20.
 
 ```solidity
 function withdraw(
-    uint256 vaultId
+    uint256 vaultId,
+    string feeSchemaKey
 ) external
 ```
 
@@ -97,36 +104,53 @@ Distributes the funds from a vault to the fee collectors and the owner.
 | Name | Type | Description |
 | :--- | :--- | :---------- |
 | `vaultId` | uint256 | The id of the vault whose funds should be distributed. |
+| `feeSchemaKey` | string | The key of the schema used to distribute fees. |
 
-### setGuildFeeCollector
+### addFeeSchema
 
 ```solidity
-function setGuildFeeCollector(
-    address payable newFeeCollector
+function addFeeSchema(
+    string key,
+    struct IFeeCollector.FeeShare[] feeShare
 ) external
 ```
-
-Sets the address that receives Guild's share from the funds.
-
-Callable only by the current Guild fee collector.
 
 #### Parameters
 
 | Name | Type | Description |
 | :--- | :--- | :---------- |
-| `newFeeCollector` | address payable | The new address of guildFeeCollector. |
+| `key` | string |  |
+| `feeShare` | struct IFeeCollector.FeeShare[] |  |
 
-### setGuildShareBps
+### setGuildTreasury
 
 ```solidity
-function setGuildShareBps(
+function setGuildTreasury(
+    address payable newTreasury
+) external
+```
+
+Sets the address that receives Guild's share from the funds.
+
+Callable only by the owner.
+
+#### Parameters
+
+| Name | Type | Description |
+| :--- | :--- | :---------- |
+| `newTreasury` | address payable | The new address of Guild's treasury. |
+
+### setTotalFeeBps
+
+```solidity
+function setTotalFeeBps(
     uint96 newShare
 ) external
 ```
 
-Sets Guild's share from the funds.
+Sets Guild's and any partner's share from the funds.
 
-Callable only by the Guild fee collector.
+Callable only by the owner.
 
 #### Parameters
 
@@ -139,9 +163,9 @@ Callable only by the Guild fee collector.
 ```solidity
 function setVaultDetails(
     uint256 vaultId,
-    address newOwner,
+    address payable newOwner,
     bool newMultiplePayments,
-    uint120 newFee
+    uint128 newFee
 ) external
 ```
 
@@ -154,16 +178,32 @@ Callable only by the owner of the vault to be changed.
 | Name | Type | Description |
 | :--- | :--- | :---------- |
 | `vaultId` | uint256 | The id of the vault whose details should be changed. |
-| `newOwner` | address | The address that will receive the fees from now on. |
+| `newOwner` | address payable | The address that will receive the fees from now on. |
 | `newMultiplePayments` | bool | Whether the fee can be paid multiple times from now on. |
-| `newFee` | uint120 | The amount of fee to pay in base units from now on. |
+| `newFee` | uint128 | The amount of fee to pay in base units from now on. |
+
+### getFeeSchema
+
+```solidity
+function getFeeSchema(
+    string key
+) external returns (struct IFeeCollector.FeeShare[] schema)
+```
+
+Returns a fee schema for a given key.
+
+#### Parameters
+
+| Name | Type | Description |
+| :--- | :--- | :---------- |
+| `key` | string | The key of the schema. |
 
 ### getVault
 
 ```solidity
 function getVault(
     uint256 vaultId
-) external returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected)
+) external returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 collected)
 ```
 
 Returns a vault's details.
@@ -178,10 +218,10 @@ Returns a vault's details.
 
 | Name | Type | Description |
 | :--- | :--- | :---------- |
-| `owner` | address | The owner of the vault who recieves the funds. |
+| `owner` | address payable | The owner of the vault who recieves the funds. |
 | `token` | address | The address of the token to receive funds in (the zero address in case of Ether). |
 | `multiplePayments` | bool | Whether the fee can be paid multiple times. |
-| `fee` | uint120 | The amount of required funds in base units. |
+| `fee` | uint128 | The amount of required funds in base units. |
 | `collected` | uint128 | The amount of already collected funds. |
 ### hasPaid
 
@@ -200,42 +240,4 @@ Returns if an account has paid the fee to a vault.
 | :--- | :--- | :---------- |
 | `vaultId` | uint256 | The id of the queried vault. |
 | `account` | address | The address of the queried account. |
-
-### _withdrawEther
-
-```solidity
-function _withdrawEther(
-    uint256 guildAmount,
-    uint256 ownerAmount,
-    address eventOwner
-) internal
-```
-
-#### Parameters
-
-| Name | Type | Description |
-| :--- | :--- | :---------- |
-| `guildAmount` | uint256 |  |
-| `ownerAmount` | uint256 |  |
-| `eventOwner` | address |  |
-
-### _withdrawToken
-
-```solidity
-function _withdrawToken(
-    uint256 guildAmount,
-    uint256 ownerAmount,
-    address eventOwner,
-    address tokenAddress
-) internal
-```
-
-#### Parameters
-
-| Name | Type | Description |
-| :--- | :--- | :---------- |
-| `guildAmount` | uint256 |  |
-| `ownerAmount` | uint256 |  |
-| `eventOwner` | address |  |
-| `tokenAddress` | address |  |
 

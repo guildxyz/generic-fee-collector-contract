@@ -6,7 +6,7 @@ A detailed documentation of the contract can be found in the _[docs](docs)_ fold
 
 ## Setup
 
-To run the project you need [Node.js](https://nodejs.org) development environment.
+To run the project you need [Node.js](https://nodejs.org) development environment (version 12 or newer).
 
 Pull the repository from GitHub, then install its dependencies by executing this command:
 
@@ -18,11 +18,11 @@ Certain actions, like deploying to a public network or verifying source code on 
 
 ### Some additional steps before deployment
 
-Open _scripts/deploy-feecollector.ts_. Notice the top four constants:
+Open _scripts/deploy-feecollector.ts_. Notice the top constants:
 
 ```js
-const guildFeeCollector = "0x..."; // The address that will receive Guild's share from the funds.
-const guildShareBps = 0; // The percentage of Guild's share expressed in basis points (e.g 500 for a 5% cut).
+const guildTreasury = "0x..."; // The address that will receive Guild's share from the funds.
+const totalFeeBps = 0; // The percentage of Guild's and any partner's share expressed in basis points (e.g 500 for a 5% cut).
 ```
 
 Edit them according to your needs.

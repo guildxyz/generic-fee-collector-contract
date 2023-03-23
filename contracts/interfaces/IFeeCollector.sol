@@ -3,11 +3,18 @@ pragma solidity ^0.8.0;
 
 /// @title A smart contract for registering vaults for payments.
 interface IFeeCollector {
+    /// @notice An item that represents whom to transfer fees to and what percentage of the fees
+    /// should be sent (expressed in basis points).
+    struct FeeShare {
+        address payable treasury;
+        uint96 feeShareBps;
+    }
+
     struct Vault {
-        address owner;
+        address payable owner;
         address token;
         bool multiplePayments;
-        uint120 fee;
+        uint128 fee;
         uint128 collected;
         mapping(address => bool) paid;
     }
@@ -17,21 +24,35 @@ interface IFeeCollector {
     /// @param token The zero address for Ether, otherwise an ERC20 token.
     /// @param multiplePayments Whether the fee can be paid multiple times.
     /// @param fee The amount of fee to pay in base units.
-    function registerVault(address owner, address token, bool multiplePayments, uint120 fee) external;
+    function registerVault(address payable owner, address token, bool multiplePayments, uint128 fee) external;
 
     /// @notice Registers the paid fee, both in Ether or ERC20.
     /// @param vaultId The id of the vault to pay to.
     function payFee(uint256 vaultId) external payable;
 
-    /// @notice Sets the address that receives Guild's share from the funds.
-    /// @dev Callable only by the current Guild fee collector.
-    /// @param newFeeCollector The new address of guildFeeCollector.
-    function setGuildFeeCollector(address payable newFeeCollector) external;
+    /// @notice Distributes the funds from a vault to the fee collectors and the owner.
+    /// @param vaultId The id of the vault whose funds should be distributed.
+    /// @param feeSchemaKey The key of the schema used to distribute fees.
+    function withdraw(uint256 vaultId, string calldata feeSchemaKey) external;
 
-    /// @notice Sets Guild's share from the funds.
-    /// @dev Callable only by the Guild fee collector.
+    /// @notice Adds a new fee schema (array of FeeShares).
+    /// Note that any remaining percentage of the fees will go to Guild's treasury.
+    /// A FeeShare is an item that represents whom to transfer fees to and what percentage of the fees
+    /// should be sent (expressed in basis points).
+    /// @dev Callable only by the owner.
+    /// @param key The key of the schema, used to look it up in the feeSchemas mapping.
+    /// @param feeShares An array of FeeShare structs.
+    function addFeeSchema(string calldata key, FeeShare[] calldata feeShares) external;
+
+    /// @notice Sets the address that receives Guild's share from the funds.
+    /// @dev Callable only by the owner.
+    /// @param newTreasury The new address of Guild's treasury.
+    function setGuildTreasury(address payable newTreasury) external;
+
+    /// @notice Sets Guild's and any partner's share from the funds.
+    /// @dev Callable only by the owner.
     /// @param newShare The percentual value expressed in basis points.
-    function setGuildShareBps(uint96 newShare) external;
+    function setTotalFeeBps(uint96 newShare) external;
 
     /// @notice Changes the details of a vault.
     /// @dev Callable only by the owner of the vault to be changed.
@@ -39,11 +60,17 @@ interface IFeeCollector {
     /// @param newOwner The address that will receive the fees from now on.
     /// @param newMultiplePayments Whether the fee can be paid multiple times from now on.
     /// @param newFee The amount of fee to pay in base units from now on.
-    function setVaultDetails(uint256 vaultId, address newOwner, bool newMultiplePayments, uint120 newFee) external;
+    function setVaultDetails(
+        uint256 vaultId,
+        address payable newOwner,
+        bool newMultiplePayments,
+        uint128 newFee
+    ) external;
 
-    /// @notice Distributes the funds from a vault to the fee collectors and the owner.
-    /// @param vaultId The id of the vault whose funds should be distributed.
-    function withdraw(uint256 vaultId) external;
+    /// @notice Returns a fee schema for a given key.
+    /// @param key The key of the schema.
+    /// @param schema The fee schema corresponding to the key.
+    function getFeeSchema(string calldata key) external view returns (FeeShare[] memory schema);
 
     /// @notice Returns a vault's details.
     /// @param vaultId The id of the queried vault.
@@ -54,7 +81,10 @@ interface IFeeCollector {
     /// @return collected The amount of already collected funds.
     function getVault(
         uint256 vaultId
-    ) external view returns (address owner, address token, bool multiplePayments, uint120 fee, uint128 collected);
+    )
+        external
+        view
+        returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 collected);
 
     /// @notice Returns if an account has paid the fee to a vault.
     /// @param vaultId The id of the queried vault.
@@ -62,10 +92,10 @@ interface IFeeCollector {
     function hasPaid(uint256 vaultId, address account) external view returns (bool paid);
 
     /// @notice Returns the address that receives Guild's share from the funds.
-    function guildFeeCollector() external view returns (address payable);
+    function guildTreasury() external view returns (address payable);
 
-    /// @notice Returns the percentage of Guild's share expressed in basis points.
-    function guildShareBps() external view returns (uint96);
+    /// @notice Returns the percentage of Guild's and any partner's share expressed in basis points.
+    function totalFeeBps() external view returns (uint96);
 
     /// @notice Event emitted when a call to {payFee} succeeds.
     /// @param vaultId The id of the vault that received the payment.
@@ -73,13 +103,17 @@ interface IFeeCollector {
     /// @param amount The amount of fee received in base units.
     event FeeReceived(uint256 indexed vaultId, address indexed account, uint256 amount);
 
-    /// @notice Event emitted when the Guild fee collector address is changed.
-    /// @param newFeeCollector The address to change guildFeeCollector to.
-    event GuildFeeCollectorChanged(address newFeeCollector);
+    /// @notice Event emitted when a new fee schema is added.
+    /// @param key The key of the schema, used to look it up in the feeSchemas mapping.
+    event FeeSchemaAdded(string key);
 
-    /// @notice Event emitted when the share of the Guild fee collector changes.
-    /// @param newShare The new value of guildShareBps.
-    event GuildShareBpsChanged(uint96 newShare);
+    /// @notice Event emitted when the Guild treasury address is changed.
+    /// @param newTreasury The address to change Guild's treasury to.
+    event GuildTreasuryChanged(address newTreasury);
+
+    /// @notice Event emitted when the share of the total fee changes.
+    /// @param newShare The new value of totalFeeBps.
+    event TotalFeeBpsChanged(uint96 newShare);
 
     /// @notice Event emitted when a vault's details are changed.
     /// @param vaultId The id of the altered vault.
@@ -89,13 +123,16 @@ interface IFeeCollector {
     /// @param owner The address that receives the fees from the payment.
     /// @param token The zero address for Ether, otherwise an ERC20 token.
     /// @param fee The amount of fee to pay in base units.
-    event VaultRegistered(uint256 vaultId, address indexed owner, address indexed token, uint256 fee);
+    event VaultRegistered(uint256 vaultId, address payable indexed owner, address indexed token, uint256 fee);
 
     /// @notice Event emitted when funds are withdrawn by a vault owner.
     /// @param vaultId The id of the vault.
-    /// @param guildAmount The amount received by the Guild fee collector in base units.
-    /// @param ownerAmount The amount received by the vault's owner in base units.
-    event Withdrawn(uint256 indexed vaultId, uint256 guildAmount, uint256 ownerAmount);
+    event Withdrawn(uint256 indexed vaultId);
+
+    /// @notice Error thrown when a function is attempted to be called by the wrong address.
+    /// @param sender The address that sent the transaction.
+    /// @param owner The address that is allowed to call the function.
+    error AccessDenied(address sender, address owner);
 
     /// @notice Error thrown when multiple payments aren't enabled, but the sender attempts to pay repeatedly.
     /// @param vaultId The id of the vault.
@@ -108,16 +145,6 @@ interface IFeeCollector {
     /// @param paid The amount of funds received.
     /// @param requiredAmount The amount of fees required by the vault.
     error IncorrectFee(uint256 vaultId, uint256 paid, uint256 requiredAmount);
-
-    /// @notice Error thrown when a function is attempted to be called by the wrong address.
-    /// @param sender The address that sent the transaction.
-    /// @param owner The address that is allowed to call the function.
-    error AccessDenied(address sender, address owner);
-
-    /// @notice Error thrown when an ERC20 transfer failed.
-    /// @param from The sender of the token.
-    /// @param to The recipient of the token.
-    error TransferFailed(address from, address to);
 
     /// @notice Error thrown when a vault does not exist.
     /// @param vaultId The id of the requested vault.

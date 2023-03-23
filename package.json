@@ -11,6 +11,9 @@
   },
   "keywords": [],
   "license": "MIT",
+  "engines": {
+    "node": ">=12"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.2",
     "dotenv": "^16.0.3"
