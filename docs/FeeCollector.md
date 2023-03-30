@@ -39,7 +39,7 @@ struct IFeeCollector.Vault[] vaults
 ```solidity
 constructor(
     address payable guildTreasury_,
-    uint96 totalFeeBps_
+    uint256 totalFeeBps_
 ) 
 ```
 
@@ -48,7 +48,7 @@ constructor(
 | Name | Type | Description |
 | :--- | :--- | :---------- |
 | `guildTreasury_` | address payable | The address that will receive Guild's share from the funds. |
-| `totalFeeBps_` | uint96 | The percentage of Guild's and any partner's share expressed in basis points. |
+| `totalFeeBps_` | uint256 | The percentage of Guild's and any partner's share expressed in basis points. |
 
 ### registerVault
 

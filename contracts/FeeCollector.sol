@@ -20,9 +20,9 @@ contract FeeCollector is IFeeCollector, Multicall, Ownable {
 
     /// @param guildTreasury_ The address that will receive Guild's share from the funds.
     /// @param totalFeeBps_ The percentage of Guild's and any partner's share expressed in basis points.
-    constructor(address payable guildTreasury_, uint96 totalFeeBps_) {
+    constructor(address payable guildTreasury_, uint256 totalFeeBps_) {
         guildTreasury = guildTreasury_;
-        totalFeeBps = totalFeeBps_;
+        totalFeeBps = uint96(totalFeeBps_);
     }
 
     function registerVault(address payable owner, address token, bool multiplePayments, uint128 fee) external {
