@@ -13,6 +13,7 @@ async function main() {
       ethers.provider.network.name !== "unknown" ? ethers.provider.network.name : ethers.provider.network.chainId
     }...`
   );
+  console.log(`Tx hash: ${feeCollector.deployTransaction.hash}`);
 
   await feeCollector.deployed();
 
