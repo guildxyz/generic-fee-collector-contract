@@ -10,6 +10,8 @@ interface IFeeCollector {
         uint96 feeShareBps;
     }
 
+    /// @notice Contains information about individual fee collections.
+    /// @dev See {getVault} for details.
     struct Vault {
         address payable owner;
         address token;
