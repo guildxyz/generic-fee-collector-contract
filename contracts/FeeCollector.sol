@@ -62,6 +62,9 @@ contract FeeCollector is IFeeCollector, Multicall, Ownable {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
 
         Vault storage vault = vaults[vaultId];
+
+        if (msg.sender != vault.owner) revert AccessDenied(msg.sender, vault.owner);
+
         uint256 collected = vault.balance;
         vault.balance = 0;
 
