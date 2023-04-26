@@ -43,7 +43,7 @@ contract FeeCollector is IFeeCollector, Multicall, Ownable {
         if (!vault.multiplePayments && vault.paid[msg.sender]) revert AlreadyPaid(vaultId, msg.sender);
 
         uint256 requiredAmount = vault.fee;
-        vault.collected += uint128(requiredAmount);
+        vault.balance += uint128(requiredAmount);
         vault.paid[msg.sender] = true;
 
         // If the tokenAddress is zero, the payment should be in Ether, otherwise in ERC20.
@@ -62,8 +62,8 @@ contract FeeCollector is IFeeCollector, Multicall, Ownable {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
 
         Vault storage vault = vaults[vaultId];
-        uint256 collected = vault.collected;
-        vault.collected = 0;
+        uint256 collected = vault.balance;
+        vault.balance = 0;
 
         // Calculate fees to receive. Royalty is truncated - the remainder goes to the owner.
         uint256 royaltyAmount = (collected * totalFeeBps) / 10000;
@@ -147,11 +147,11 @@ contract FeeCollector is IFeeCollector, Multicall, Ownable {
     )
         external
         view
-        returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 collected)
+        returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 balance)
     {
         if (vaultId >= vaults.length) revert VaultDoesNotExist(vaultId);
         Vault storage vault = vaults[vaultId];
-        return (vault.owner, vault.token, vault.multiplePayments, vault.fee, vault.collected);
+        return (vault.owner, vault.token, vault.multiplePayments, vault.fee, vault.balance);
     }
 
     function hasPaid(uint256 vaultId, address account) external view returns (bool paid) {

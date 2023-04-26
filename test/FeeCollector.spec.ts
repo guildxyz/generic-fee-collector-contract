@@ -7,7 +7,7 @@ import { ethers } from "hardhat";
  * @returns In order: partner amounts as in the schema, Guild's amount, the vault owner's amount.
  */
 function calculateFeeDistribution(
-  collected: BigNumber,
+  totalAmount: BigNumber,
   totalFeeBps: BigNumber,
   schema: {
     treasury: string;
@@ -17,7 +17,7 @@ function calculateFeeDistribution(
   const fees = [];
 
   // Royalty is truncated - the remainder goes to the owner.
-  const royaltyAmount = collected.mul(totalFeeBps).div(10000);
+  const royaltyAmount = totalAmount.mul(totalFeeBps).div(10000);
   let guildAmount = royaltyAmount;
 
   // Calculate fees for partners.
@@ -29,7 +29,7 @@ function calculateFeeDistribution(
 
   // Calculate fees for Guild and the vault owner.
   fees.push(guildAmount);
-  fees.push(collected.sub(royaltyAmount));
+  fees.push(totalAmount.sub(royaltyAmount));
 
   return fees;
 }
@@ -183,14 +183,14 @@ describe("FeeCollector", () => {
       await feeCollector.payFee(0);
       const vaultDetails1 = await feeCollector.getVault(0);
       const hasPaid = await feeCollector.hasPaid(0, wallet0.address);
-      expect(vaultDetails1.collected).to.eq(vaultDetails0.collected.add(fee));
+      expect(vaultDetails1.balance).to.eq(vaultDetails0.balance.add(fee));
       expect(hasPaid).to.eq(true);
 
       const vaultDetails0a = await feeCollector.getVault(1);
       await feeCollector.payFee(1, { value: fee });
       const vaultDetails1a = await feeCollector.getVault(1);
       const hasPaida = await feeCollector.hasPaid(1, wallet0.address);
-      expect(vaultDetails1a.collected).to.eq(vaultDetails0a.collected.add(fee));
+      expect(vaultDetails1a.balance).to.eq(vaultDetails0a.balance.add(fee));
       expect(hasPaida).to.eq(true);
     });
 
@@ -252,16 +252,16 @@ describe("FeeCollector", () => {
         .withArgs(42);
     });
 
-    it("should set the collected amount to zero", async () => {
+    it("should set the vault's balance to zero", async () => {
       const vaultDetails0 = await feeCollector.getVault(0);
       await feeCollector.withdraw(0, "guild");
       const vaultDetails1 = await feeCollector.getVault(0);
-      expect(vaultDetails0.collected).to.not.eq(0);
-      expect(vaultDetails1.collected).to.eq(0);
+      expect(vaultDetails0.balance).to.not.eq(0);
+      expect(vaultDetails1.balance).to.eq(0);
     });
 
     it("should transfer Ether fees proportionately - empty schema", async () => {
-      const fees = calculateFeeDistribution((await feeCollector.getVault(0)).collected, totalFeeBps, []);
+      const fees = calculateFeeDistribution((await feeCollector.getVault(0)).balance, totalFeeBps, []);
 
       await expect(feeCollector.withdraw(1, "guild")).to.changeEtherBalances(
         [feeCollector, guildTreasury, owner],
@@ -276,7 +276,7 @@ describe("FeeCollector", () => {
       ];
       await feeCollector.addFeeSchema("anotherSchema", schema);
 
-      const fees = calculateFeeDistribution((await feeCollector.getVault(0)).collected, totalFeeBps, schema);
+      const fees = calculateFeeDistribution((await feeCollector.getVault(0)).balance, totalFeeBps, schema);
 
       await expect(feeCollector.withdraw(1, "anotherSchema")).to.changeEtherBalances(
         [feeCollector, randomWallet, anotherTreasury, guildTreasury, owner],
@@ -291,7 +291,7 @@ describe("FeeCollector", () => {
       ];
       await feeCollector.addFeeSchema("anotherSchema", schema);
 
-      const fees = calculateFeeDistribution((await feeCollector.getVault(0)).collected, totalFeeBps, schema);
+      const fees = calculateFeeDistribution((await feeCollector.getVault(0)).balance, totalFeeBps, schema);
 
       await expect(feeCollector.withdraw(1, "anotherSchema")).to.changeEtherBalances(
         [feeCollector, randomWallet, anotherTreasury, guildTreasury, owner],
@@ -311,7 +311,7 @@ describe("FeeCollector", () => {
     });
 
     it("should transfer ERC20 fees proportionately - empty schema", async () => {
-      const collectedFees = (await feeCollector.getVault(0)).collected;
+      const collectedFees = (await feeCollector.getVault(0)).balance;
       const fees = calculateFeeDistribution(collectedFees, totalFeeBps, []);
 
       await expect(feeCollector.withdraw(0, "guild")).to.changeTokenBalances(
@@ -328,7 +328,7 @@ describe("FeeCollector", () => {
       ];
       await feeCollector.addFeeSchema("anotherSchema", schema);
 
-      const collectedFees = (await feeCollector.getVault(0)).collected;
+      const collectedFees = (await feeCollector.getVault(0)).balance;
       const fees = calculateFeeDistribution(collectedFees, totalFeeBps, schema);
 
       await expect(feeCollector.withdraw(0, "anotherSchema")).to.changeTokenBalances(
@@ -345,7 +345,7 @@ describe("FeeCollector", () => {
       ];
       await feeCollector.addFeeSchema("anotherSchema", schema);
 
-      const collectedFees = (await feeCollector.getVault(0)).collected;
+      const collectedFees = (await feeCollector.getVault(0)).balance;
       const fees = calculateFeeDistribution(collectedFees, totalFeeBps, schema);
 
       await expect(feeCollector.withdraw(0, "anotherSchema")).to.changeTokenBalances(
@@ -399,7 +399,7 @@ describe("FeeCollector", () => {
       expect(vaultAfter.multiplePayments).to.eq(true);
       expect(vaultAfter.fee).to.eq(420);
       expect(vaultAfter.token).to.eq(vaultBefore.token);
-      expect(vaultAfter.collected).to.eq(vaultBefore.collected);
+      expect(vaultAfter.balance).to.eq(vaultBefore.balance);
     });
 
     it("should emit a VaultDetailsChanged event", async () => {
