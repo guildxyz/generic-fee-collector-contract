@@ -27,6 +27,7 @@ interface IFeeCollector {
     function registerVault(address payable owner, address token, bool multiplePayments, uint128 fee) external;
 
     /// @notice Registers the paid fee, both in Ether or ERC20.
+    /// @dev If ERC20 tokens are used, the contract needs to be approved using the {IERC20-approve} function.
     /// @param vaultId The id of the vault to pay to.
     function payFee(uint256 vaultId) external payable;
 
