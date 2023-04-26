@@ -34,6 +34,7 @@ library LibTransfer {
 
     /// @notice Sends an ERC20 token to an address from another address and reverts if transferFrom returns false.
     /// @dev Wrapper for {IERC20-transferFrom}.
+    /// @dev The contract needs to be approved using the {IERC20-approve} function to move the tokens.
     /// @param to The recipient of the tokens.
     /// @param from The source of the tokens.
     /// @param token The address of the token to send.
