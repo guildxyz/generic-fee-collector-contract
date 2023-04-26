@@ -239,8 +239,8 @@ describe("FeeCollector", () => {
   context("withdrawing collected fees", () => {
     beforeEach("register an ERC20 and an Ether vault", async () => {
       await feeCollector.addFeeSchema("guild", []);
-      await feeCollector.registerVault(owner.address, token.address, false, fee);
-      await feeCollector.registerVault(owner.address, ethers.constants.AddressZero, false, fee);
+      await feeCollector.registerVault(wallet0.address, token.address, false, fee);
+      await feeCollector.registerVault(wallet0.address, ethers.constants.AddressZero, false, fee);
       await token.approve(feeCollector.address, ethers.constants.MaxUint256);
       await feeCollector.payFee(0);
       await feeCollector.payFee(1, { value: fee });
@@ -250,6 +250,13 @@ describe("FeeCollector", () => {
       await expect(feeCollector.withdraw(42, "guild"))
         .to.be.revertedWithCustomError(feeCollector, "VaultDoesNotExist")
         .withArgs(42);
+    });
+
+    it("should revert if the caller is not the vault's owner", async () => {
+      const vault = await feeCollector.getVault(1);
+      await expect(feeCollector.connect(randomWallet).withdraw(1, "guild"))
+        .to.be.revertedWithCustomError(feeCollector, "AccessDenied")
+        .withArgs(randomWallet.address, vault.owner);
     });
 
     it("should set the vault's balance to zero", async () => {
@@ -264,7 +271,7 @@ describe("FeeCollector", () => {
       const fees = calculateFeeDistribution((await feeCollector.getVault(0)).balance, totalFeeBps, []);
 
       await expect(feeCollector.withdraw(1, "guild")).to.changeEtherBalances(
-        [feeCollector, guildTreasury, owner],
+        [feeCollector, guildTreasury, wallet0],
         [fee.mul(-1), ...fees]
       );
     });
@@ -279,7 +286,7 @@ describe("FeeCollector", () => {
       const fees = calculateFeeDistribution((await feeCollector.getVault(0)).balance, totalFeeBps, schema);
 
       await expect(feeCollector.withdraw(1, "anotherSchema")).to.changeEtherBalances(
-        [feeCollector, randomWallet, anotherTreasury, guildTreasury, owner],
+        [feeCollector, randomWallet, anotherTreasury, guildTreasury, wallet0],
         [fee.mul(-1), ...fees]
       );
     });
@@ -294,7 +301,7 @@ describe("FeeCollector", () => {
       const fees = calculateFeeDistribution((await feeCollector.getVault(0)).balance, totalFeeBps, schema);
 
       await expect(feeCollector.withdraw(1, "anotherSchema")).to.changeEtherBalances(
-        [feeCollector, randomWallet, anotherTreasury, guildTreasury, owner],
+        [feeCollector, randomWallet, anotherTreasury, guildTreasury, wallet0],
         [fee.mul(-1), ...fees]
       );
     });
@@ -316,7 +323,7 @@ describe("FeeCollector", () => {
 
       await expect(feeCollector.withdraw(0, "guild")).to.changeTokenBalances(
         token,
-        [feeCollector, guildTreasury, owner],
+        [feeCollector, guildTreasury, wallet0],
         [collectedFees.mul(-1), ...fees]
       );
     });
@@ -333,7 +340,7 @@ describe("FeeCollector", () => {
 
       await expect(feeCollector.withdraw(0, "anotherSchema")).to.changeTokenBalances(
         token,
-        [feeCollector, randomWallet, anotherTreasury, guildTreasury, owner],
+        [feeCollector, randomWallet, anotherTreasury, guildTreasury, wallet0],
         [collectedFees.mul(-1), ...fees]
       );
     });
@@ -350,7 +357,7 @@ describe("FeeCollector", () => {
 
       await expect(feeCollector.withdraw(0, "anotherSchema")).to.changeTokenBalances(
         token,
-        [feeCollector, randomWallet, anotherTreasury, guildTreasury, owner],
+        [feeCollector, randomWallet, anotherTreasury, guildTreasury, wallet0],
         [collectedFees.mul(-1), ...fees]
       );
     });
@@ -384,7 +391,7 @@ describe("FeeCollector", () => {
         .withArgs(69);
     });
 
-    it("should revert if the caller is not the vaults owner", async () => {
+    it("should revert if the caller is not the vault's owner", async () => {
       const vault = await feeCollector.getVault(0);
       await expect(feeCollector.setVaultDetails(0, randomWallet.address, false, 0))
         .to.be.revertedWithCustomError(feeCollector, "AccessDenied")

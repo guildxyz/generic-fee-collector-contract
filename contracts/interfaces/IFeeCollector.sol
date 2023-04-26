@@ -34,6 +34,7 @@ interface IFeeCollector {
     function payFee(uint256 vaultId) external payable;
 
     /// @notice Distributes the funds from a vault to the fee collectors and the owner.
+    /// @dev Callable only by the vault's owner.
     /// @param vaultId The id of the vault whose funds should be distributed.
     /// @param feeSchemaKey The key of the schema used to distribute fees.
     function withdraw(uint256 vaultId, string calldata feeSchemaKey) external;
