@@ -17,7 +17,7 @@ interface IFeeCollector {
         address token;
         bool multiplePayments;
         uint128 fee;
-        uint128 collected;
+        uint128 balance;
         mapping(address => bool) paid;
     }
 
@@ -81,13 +81,10 @@ interface IFeeCollector {
     /// @return token The address of the token to receive funds in (the zero address in case of Ether).
     /// @return multiplePayments Whether the fee can be paid multiple times.
     /// @return fee The amount of required funds in base units.
-    /// @return collected The amount of already collected funds.
+    /// @return balance The amount of already collected funds.
     function getVault(
         uint256 vaultId
-    )
-        external
-        view
-        returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 collected);
+    ) external view returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 balance);
 
     /// @notice Returns if an account has paid the fee to a vault.
     /// @param vaultId The id of the queried vault.
