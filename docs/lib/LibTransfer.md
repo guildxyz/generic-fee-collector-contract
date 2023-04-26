@@ -58,6 +58,7 @@ function sendTokenFrom(
 Sends an ERC20 token to an address from another address and reverts if transferFrom returns false.
 
 Wrapper for {IERC20-transferFrom}.
+The contract needs to be approved using the {IERC20-approve} function to move the tokens.
 
 #### Parameters
 

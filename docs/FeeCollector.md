@@ -82,6 +82,8 @@ function payFee(
 
 Registers the paid fee, both in Ether or ERC20.
 
+If ERC20 tokens are used, the contract needs to be approved using the {IERC20-approve} function.
+
 #### Parameters
 
 | Name | Type | Description |
@@ -98,6 +100,8 @@ function withdraw(
 ```
 
 Distributes the funds from a vault to the fee collectors and the owner.
+
+Callable only by the vault's owner.
 
 #### Parameters
 
@@ -203,7 +207,7 @@ Returns a fee schema for a given key.
 ```solidity
 function getVault(
     uint256 vaultId
-) external returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 collected)
+) external returns (address payable owner, address token, bool multiplePayments, uint128 fee, uint128 balance)
 ```
 
 Returns a vault's details.
@@ -222,7 +226,7 @@ Returns a vault's details.
 | `token` | address | The address of the token to receive funds in (the zero address in case of Ether). |
 | `multiplePayments` | bool | Whether the fee can be paid multiple times. |
 | `fee` | uint128 | The amount of required funds in base units. |
-| `collected` | uint128 | The amount of already collected funds. |
+| `balance` | uint128 | The amount of already collected funds. |
 ### hasPaid
 
 ```solidity
