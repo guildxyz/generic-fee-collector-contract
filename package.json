@@ -15,8 +15,8 @@
     "node": ">=12"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.3",
-    "dotenv": "^16.0.3"
+    "@openzeppelin/contracts": "^4.9.5",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
