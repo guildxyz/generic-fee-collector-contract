@@ -136,6 +136,14 @@ const config: HardhatUserConfig = {
     lisk: {
       url: "https://rpc.api.lisk.com",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    },
+    form: {
+      url: "https://rpc.form.network/http",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    },
+    ink: {
+      url: "https://rpc-gel.inkonchain.com",
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     }
   },
   gasReporter: {
@@ -169,7 +177,9 @@ const config: HardhatUserConfig = {
       // mint: "", // no etherscan
       mode: "mode",
       avalanche: "avalanche",
-      lisk: "lisk"
+      lisk: "lisk",
+      form: "form",
+      ink: "ink"
     },
     customChains: [
       {
@@ -256,6 +266,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://blockscout.lisk.com/api",
           browserURL: "https://blockscout.lisk.com"
+        }
+      },
+      {
+        network: "form",
+        chainId: 478,
+        urls: {
+          apiURL: "https://explorer.form.network/api",
+          browserURL: "https://explorer.form.network"
+        }
+      },
+      {
+        network: "ink",
+        chainId: 57073,
+        urls: {
+          apiURL: "https://explorer.inkonchain.com/api",
+          browserURL: "https://explorer.inkonchain.com"
         }
       }
     ]
