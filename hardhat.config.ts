@@ -2,6 +2,7 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
+import "@xyrusworx/hardhat-solidity-json";
 import "hardhat-gas-reporter";
 import "solidity-docgen";
 import "dotenv/config";
